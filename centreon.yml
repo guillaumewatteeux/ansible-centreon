@@ -1,0 +1,22 @@
+---
+
+# Testing playbook.... use with VM
+
+
+- hosts: localhost
+  tasks:
+    - name: Add host to Centreon
+      centreon_host:
+        url: "http://192.168.189.128/centreon"
+        username: "admin"
+        password: "centreon"
+        name: "ansible-test4"
+        alias: "Alias_ansible"
+        ipaddr: "127.0.0.1"
+        hosttemplates: "OS-Linux-SNMP-custom"
+        hostgroups: "Linux-Servers"
+        instance: "Central"
+      delegate_to: 127.0.0.1
+
+
+
