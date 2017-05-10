@@ -10,13 +10,25 @@
         url: "http://192.168.189.128/centreon"
         username: "admin"
         password: "centreon"
-        name: "ansible-test4"
+        name: "ansible-test"
         alias: "Alias_ansible"
-        ipaddr: "127.0.0.1"
-        hosttemplates: "OS-Linux-SNMP-custom"
-        hostgroups: "Linux-Servers"
-        instance: "Central"
-      delegate_to: 127.0.0.1
+        ipaddr: "127.0.0.2"
+        hosttemplates:
+          - OS-Linux-SNMP-custom
+          - App-DB-MySQL
+        hostgroups:
+          - Linux-Servers
+          - hg1
+        instance: Central
+        status: enabled
+        state: present
+        params:
+          action_url: http://example.org/test
+          notes: "My Server"
+        macros:
+          EXTRACMD: /bin/echo
+          MYMACRO: done
+      delegate_to: localhost
 
 
 
