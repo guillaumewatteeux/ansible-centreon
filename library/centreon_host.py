@@ -133,8 +133,8 @@ def main():
             instance=dict(default='Central'),
             hostgroups=dict(type='list'),
             hostgroups_action=dict(default='add', choices=['add', 'set']),
-            params=dict(type='dict'),
-            macros=dict(type='dict'),
+            params=dict(type='dict', default=None),
+            macros=dict(type='dict', default=None),
             state=dict(default='present', choices=['present', 'absent']),
             status=dict(default='enabled', choices=['enabled', 'disabled']),
             applycfg=dict(default=True, type='bool')
@@ -160,6 +160,8 @@ def main():
     status = module.params["status"]
     applycfg = module.params["applycfg"]
 
+    has_changed = False
+
     try:
         centreon = Centreon(url, username, password)
     except Exception as exc:
@@ -177,9 +179,10 @@ def main():
         if state == "absent":
             try:
                 centreon.host.delete(name)
+                has_changed = True
                 if applycfg:
                     centreon.poller.applycfg(instance)
-                module.exit_json(changed=True, mode="delete")
+                module.exit_json(changed=has_changed, mode="delete")
             except Exception as exc:
                 module.fail_json(msg='State: %s' % exc.message)
 
@@ -191,34 +194,66 @@ def main():
 
             if status == "disabled" and int(host.state) == 1:
                 centreon.host.disable(name)
+                has_changed = True
             if status == "enabled" and int(host.state) == 0:
                 centreon.host.enable(name)
+                has_changed = True
 
             if not host.address == ipaddr:
                 centreon.host.setparameters(name, 'address', ipaddr)
+                has_changed = True
 
             if not host.alias == alias:
                 centreon.host.setparameters(name, 'alias', alias)
+                has_changed = True
 
-            if hostgroups_action == "add":
-                centreon.host.addhostgroup(name, hostgroups)
-            else:
-                centreon.host.sethostgroup(name, hostgroups)
+            hostgroups_host = centreon.host.gethostgroup(name)
 
-            centreon.host.addtemplate(name, hosttemplates)
+            hostgroup_list = []
+            for hg in hostgroups_host['result']:
+                hostgroup_list.append(hg['name'])
+
+            if not hostgroup_list.sort() == hostgroups.sort():
+                if hostgroups_action == "add":
+                  centreon.host.addhostgroup(name, hostgroups)
+                  has_changed = True
+                else:
+                  centreon.host.sethostgroup(name, hostgroups)
+                  has_changed = True
+
+            if hosttemplates:
+                template_host = centreon.host.gettemplate(name)
+                template_list = []
+                for tpl in template_host['result']:
+                  template_list.append(tpl['name'])
+
+                if not template_list.sort() == hosttemplates.sort():
+                    centreon.host.addtemplate(name, hosttemplates)
+                    centreon.host.applytemplate(name)
+                    has_changed = True
 
             if macros:
+                macro_list = centreon.host.getmacro(name)
+                configured_macros = {}
+                for m in macro_list['result']:
+                    configured_macros[m['macro name']] = m['macro value']
                 for k in macros.keys():
-                    centreon.host.setmacro(name, k, macros.get(k))
+                    if k not in configured_macros.keys():
+                        centreon.host.setmacro(name, k, macros.get(k))
+                        has_changed = True
+                    else:
+                        if not configured_macros.get(k) == macros.get(k):
+                            centreon.host.setmacro(name, k, macros.get(k))
+                            has_changed = True
 
             if params:
                 for k in params.keys():
                     centreon.host.setparameters(name, k, params.get(k))
+                    has_changed = True
 
-            centreon.host.applytemplate(name)
             if applycfg:
                 centreon.poller.applycfg(instance)
-            module.exit_json(changed=True, mode="done")
+            module.exit_json(changed=has_changed)
         except Exception as exc:
             module.fail_json(msg='%s' % exc.message)
 
@@ -232,15 +267,16 @@ def main():
                           hostgroups)
             # Apply the host templates for create associate services
             centreon.host.applytemplate(name)
+            has_changed = True
             # Apply Centreon configuration and reload the engine
             if applycfg:
                 centreon.poller.applycfg(instance)
-            module.exit_json(changed=True)
+            module.exit_json(changed=has_changed)
 
         except Exception as exc:
             module.fail_json(msg='Create: %s' % exc.message)
     else:
-        module.exit_json(changed=False)
+        module.exit_json(changed=has_changed)
 
 if __name__ == '__main__':
     main()

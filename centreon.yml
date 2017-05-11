@@ -33,9 +33,11 @@
         instance: Central
         status: enabled
         state: present
-        params:
-          action_url: http://example.org/test
-          notes: "My Server"
+        #params:
+        #  action_url: http://example.org/test
+        #  notes: "My Server"
+        macros:
+          TEST: VALUE2
         applycfg: False
       delegate_to: localhost
       notify: "centreon api applycfg"
