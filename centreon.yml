@@ -4,12 +4,23 @@
 
 
 - hosts: localhost
+  vars:
+    centreon_url: "http://192.168.189.128/centreon"
+    centreon_api_user: "admin"
+    centreon_api_pass: "centreon"
+  handlers:
+    - name: "centreon api applycfg"
+      centreon_poller:
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
+      listen: "centreon api applycfg"
   tasks:
     - name: Add host to Centreon
       centreon_host:
-        url: "http://192.168.189.128/centreon"
-        username: "admin"
-        password: "centreon"
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
         name: "ansible-test"
         alias: "Alias_ansible"
         ipaddr: "127.0.0.2"
@@ -25,10 +36,9 @@
         params:
           action_url: http://example.org/test
           notes: "My Server"
-        macros:
-          EXTRACMD: /bin/echo
-          MYMACRO: done
+        applycfg: False
       delegate_to: localhost
+      notify: "centreon api applycfg"
 
 
 

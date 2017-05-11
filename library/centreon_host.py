@@ -3,11 +3,13 @@
 
 ANSIBLE_METADATA = { 'status': ['preview'],
                      'supported_by': 'community',
+                     'metadata_version': '0.1',
                      'version': '0.1'}
 
 DOCUMENTATION = '''
 ---
 module: centreon_host
+version_added: "2.2"
 short_description: add host to centreon
 
 options:
@@ -15,6 +17,7 @@ options:
     description:
       - Centreon URL
     required: True
+
   username:
     description:
       - Centreon API username
@@ -30,6 +33,7 @@ options:
   hosttemplates:
     description:
       - Host Template list for this host
+    type: list
   alias:
     description:
       - Host alias
@@ -44,6 +48,12 @@ options:
   hostgroups:
     description:
       - Hostgroups list
+    type: list
+  hostgroups_action:
+    description:
+      - Define hostgroups setting method (add/set)
+    default: add
+    choices: ['add','set']
   params:
     description:
       - Config specific parameter (dict)
@@ -60,6 +70,8 @@ options:
       - Enable / Disable host on Centreon
     default: enabled
     choices: ['enabled', 'disabled']
+requirements:
+  - Python Centreon API
 author:
     - Guillaume Watteeux
 '''
@@ -120,10 +132,12 @@ def main():
             ipaddr=dict(),
             instance=dict(default='Central'),
             hostgroups=dict(type='list'),
+            hostgroups_action=dict(default='add', choices=['add', 'set']),
             params=dict(type='dict'),
             macros=dict(type='dict'),
             state=dict(default='present', choices=['present', 'absent']),
             status=dict(default='enabled', choices=['enabled', 'disabled']),
+            applycfg=dict(default=True, type='bool')
         )
     )
 
@@ -139,10 +153,12 @@ def main():
     hosttemplates = module.params["hosttemplates"]
     instance = module.params["instance"]
     hostgroups = module.params["hostgroups"]
+    hostgroups_action = module.params["hostgroups_action"]
     params = module.params["params"]
     macros = module.params["macros"]
     state = module.params["state"]
     status = module.params["status"]
+    applycfg = module.params["applycfg"]
 
     try:
         centreon = Centreon(url, username, password)
@@ -161,7 +177,8 @@ def main():
         if state == "absent":
             try:
                 centreon.host.delete(name)
-                centreon.poller.applycfg(instance)
+                if applycfg:
+                    centreon.poller.applycfg(instance)
                 module.exit_json(changed=True, mode="delete")
             except Exception as exc:
                 module.fail_json(msg='State: %s' % exc.message)
@@ -183,8 +200,12 @@ def main():
             if not host.alias == alias:
                 centreon.host.setparameters(name, 'alias', alias)
 
-            centreon.host.sethostgroup(name, hostgroups)
-            centreon.host.settemplate(name, hosttemplates)
+            if hostgroups_action == "add":
+                centreon.host.addhostgroup(name, hostgroups)
+            else:
+                centreon.host.sethostgroup(name, hostgroups)
+
+            centreon.host.addtemplate(name, hosttemplates)
 
             if macros:
                 for k in macros.keys():
@@ -195,12 +216,13 @@ def main():
                     centreon.host.setparameters(name, k, params.get(k))
 
             centreon.host.applytemplate(name)
-            centreon.poller.applycfg(instance)
+            if applycfg:
+                centreon.poller.applycfg(instance)
             module.exit_json(changed=True, mode="done")
         except Exception as exc:
             module.fail_json(msg='%s' % exc.message)
 
-    else:
+    elif not centreon.exists_host(name) and state == "present":
         try:
             centreon.host.add(name,
                           alias,
@@ -211,11 +233,14 @@ def main():
             # Apply the host templates for create associate services
             centreon.host.applytemplate(name)
             # Apply Centreon configuration and reload the engine
-            centreon.poller.applycfg(instance)
+            if applycfg:
+                centreon.poller.applycfg(instance)
             module.exit_json(changed=True)
 
         except Exception as exc:
             module.fail_json(msg='Create: %s' % exc.message)
+    else:
+        module.exit_json(changed=False)
 
 if __name__ == '__main__':
     main()
