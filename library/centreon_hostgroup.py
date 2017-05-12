@@ -8,9 +8,9 @@ ANSIBLE_METADATA = { 'status': ['preview'],
 
 DOCUMENTATION = '''
 ---
-module: centreon_poller
+module: centreon_hostgroup
 version_added: "2.2"
-short_description: applycfg on poller
+short_description: Create or delete hostgroup
 
 options:
   url:
@@ -25,15 +25,14 @@ options:
     description:
       - Centreon API username's password
     required: True
-  instance:
+  name:
     description:
-      - Poller instance to check host
-    default: Central
-  action:
+      - Hostgroup name (/ alias)
+  state:
     description:
-      - action for poller
-    default: applycfg
-    choices: ['applycfg']
+      - Create / Delete hostgroup
+    default: present
+    choices: ['present', 'absent']
 requirements:
   - Python Centreon API
 author:
@@ -42,12 +41,22 @@ author:
 
 EXAMPLES = '''
 # Add host
- - centreon_poller:
-     url: 'https://centreon.company.net/centreon'
-     username: 'ansible_api'
-     password: 'strong_pass_from_vault'
-     instance: Central
-     action: applycfg
+- centreon_hostgroup:
+    url: 'https://centreon.company.net/centreon'
+    username: 'ansible_api'
+    password: 'strong_pass_from_vault'
+    name:
+      Linux-Servers: Linux Server
+    state: present
+     
+# Delete host
+- centreon_hostgroup:
+    url: 'https://centreon.company.net/centreon'
+    username: 'ansible_api'
+    password: 'strong_pass_from_vault'
+    name:
+      Linux-Serveur:
+    state: absent
 '''
 
 # =============================================
@@ -72,8 +81,8 @@ def main():
             url=dict(required=True),
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
-            instance=dict(default='Central'),
-            action=dict(default='applycfg', choices=['applycfg']),
+            name=dict(required=True, type='dict'),
+            state=dict(default='present', choices=['present','absent']),
         )
     )
 
@@ -83,8 +92,8 @@ def main():
     url = module.params["url"]
     username = module.params["username"]
     password = module.params["password"]
-    instance = module.params["instance"]
-    action = module.params["action"]
+    name = module.params["name"]
+    state = module.params["state"]
 
     has_changed = False
 
@@ -93,13 +102,21 @@ def main():
     except Exception as exc:
         module.fail_json(msg="Unable to connect to Centreon API: %s" % exc.message)
 
-    if not centreon.exists_poller(instance):
-        module.fail_json(msg="Poller '%s' does not exists" % instance)
-
     try:
-        if action == "applycfg":
-            centreon.poller.applycfg(instance)
-            has_changed = True
+        for hg in name.keys():
+            if centreon.exists_hostgroups(hg):
+                if state == "absent":
+                    centreon.hostgroups.delete(hg)
+                    has_changed = True
+            else:
+                if state == "present":
+                    if name.get(hg) is None:
+                        alias = hg
+                    else:
+                        alias = name.get(hg)
+                    centreon.hostgroups.add(hg, alias)
+                    has_changed = True
+
     except Exception as exc:
         module.fail_json(msg='%s' % exc.message)
 

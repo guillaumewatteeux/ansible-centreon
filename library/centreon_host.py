@@ -69,7 +69,7 @@ options:
     description:
       - Enable / Disable host on Centreon
     default: enabled
-    choices: ['enabled', 'disabled']
+    choices: c
 requirements:
   - Python Centreon API
 author:
@@ -116,7 +116,6 @@ except ImportError:
     centreonapi_found = False
 else:
     centreonapi_found = True
-
 
 
 def main():
@@ -213,7 +212,7 @@ def main():
             for hg in hostgroups_host['result']:
                 hostgroup_list.append(hg['name'])
 
-            if not hostgroup_list.sort() == hostgroups.sort():
+            if not hostgroup_list == hostgroups:
                 if hostgroups_action == "add":
                   centreon.host.addhostgroup(name, hostgroups)
                   has_changed = True
@@ -225,9 +224,9 @@ def main():
                 template_host = centreon.host.gettemplate(name)
                 template_list = []
                 for tpl in template_host['result']:
-                  template_list.append(tpl['name'])
+                    template_list.append(tpl['name'])
 
-                if not template_list.sort() == hosttemplates.sort():
+                if not template_list == hosttemplates:
                     centreon.host.addtemplate(name, hosttemplates)
                     centreon.host.applytemplate(name)
                     has_changed = True
@@ -251,7 +250,7 @@ def main():
                     centreon.host.setparameters(name, k, params.get(k))
                     has_changed = True
 
-            if applycfg:
+            if applycfg and has_changed:
                 centreon.poller.applycfg(instance)
             module.exit_json(changed=has_changed)
         except Exception as exc:
@@ -259,12 +258,7 @@ def main():
 
     elif not centreon.exists_host(name) and state == "present":
         try:
-            centreon.host.add(name,
-                          alias,
-                          ipaddr,
-                          hosttemplates,
-                          instance,
-                          hostgroups)
+            centreon.host.add(name, alias, ipaddr, hosttemplates, instance, hostgroups)
             # Apply the host templates for create associate services
             centreon.host.applytemplate(name)
             has_changed = True

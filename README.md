@@ -6,7 +6,7 @@ IN DEVELOPMENT !!! Use as ours risks
 
 Install required centreonapi (> 0.0.2) python library
 
-Copy `library/centreon_host.py` on your Ansible
+Copy `library/centreon_*.py` on your Ansible `library` path
 
 
 ### Use It ! ###
@@ -14,15 +14,28 @@ Copy `library/centreon_host.py` on your Ansible
 Playbook example
 
 ```yaml
-- hosts: all
+- hosts: localhost
+  vars:
+    centreon_url: "http://192.168.189.128/centreon"
+    centreon_api_user: "admin"
+    centreon_api_pass: "centreon"
+
+  handlers:
+    - name: "centreon api applycfg"
+      centreon_poller:
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
+      listen: "centreon api applycfg"
+
   tasks:
-    - name: Add host to Centreon platform
+    - name: Add host to Centreon
       centreon_host:
-        url: 'https://centreon.company.net/centreon'
-        username: 'ansible_api'
-        password: 'strong_pass_from_vault'
-        name: "{{ ansible_fqdn }}"
-        alias: "{{ ansible_hostname }}"
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
+        name: "{{ ansible_hostname }}"
+        alias: "{{ ansible_fqdn }}"
         ipaddr: "{{ ansible_default_ipv4.address }}"
         hosttemplates:
           - OS-Linux-SNMP-custom
@@ -30,21 +43,23 @@ Playbook example
         hostgroups:
           - Linux-Servers
           - Production-Servers
-          - App1
         instance: Central
         status: enabled
-        state: present:
+        state: present
         params:
           notes_url: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
           notes: "My Best server"
         macros:
           MACRO1: value1
           MACRO2: value2
+        applycfg: False
       delegate_to: localhost
+      notify: "centreon api applycfg"
+
 ```
 
 ### Default values ###
 
-`instance` : Central
-`status`: enabled
-`state`: present
+ * `instance` : Central
+ * `status`: enabled
+ * `state`: present

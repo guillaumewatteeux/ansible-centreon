@@ -8,6 +8,7 @@
     centreon_url: "http://192.168.189.128/centreon"
     centreon_api_user: "admin"
     centreon_api_pass: "centreon"
+
   handlers:
     - name: "centreon api applycfg"
       centreon_poller:
@@ -15,6 +16,7 @@
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
       listen: "centreon api applycfg"
+
   tasks:
     - name: Add host to Centreon
       centreon_host:
@@ -29,7 +31,8 @@
           - App-DB-MySQL
         hostgroups:
           - Linux-Servers
-          - hg1
+          - hg2
+        hostgroups_action: set
         instance: Central
         status: enabled
         state: present
@@ -41,6 +44,28 @@
         applycfg: False
       delegate_to: localhost
       notify: "centreon api applycfg"
+  tags:
+    - host
+
+
+- hosts: localhost
+  vars:
+    centreon_url: "http://192.168.189.128/centreon"
+    centreon_api_user: "admin"
+    centreon_api_pass: "centreon"
+  tasks:
+    - name: Hostgroup
+      centreon_hostgroup:
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
+        name:
+          HG_test: test
+        state: present
+      delegate_to: localhost
+  tags:
+    - hostgroup
+
 
 
 
