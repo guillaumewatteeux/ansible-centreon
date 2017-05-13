@@ -163,17 +163,21 @@ def main():
 
     try:
         centreon = Centreon(url, username, password)
-    except Exception as exc:
-        module.fail_json(msg="Unable to connect to Centreon API: %s" % exc.message)
+    except Exception as e:
+        module.fail_json(msg="Unable to connect to Centreon API: %s" % e.message)
 
     if alias is None:
         alias = name
 
-    if not centreon.exists_poller(instance):
-        module.fail_json(msg="Poller '%s' does not exists" % instance)
+    try:
+        if not centreon.exists_poller(instance):
+            module.fail_json(msg="Poller '%s' does not exists" % instance)
+    except Exception as e:
+        module.fail_json(msg="Unable to get poller list")
 
     # On exist host -------------
     #
+    data = []
     if centreon.exists_host(name):
         if state == "absent":
             try:
@@ -181,9 +185,9 @@ def main():
                 has_changed = True
                 if applycfg:
                     centreon.poller.applycfg(instance)
-                module.exit_json(changed=has_changed, mode="delete")
-            except Exception as exc:
-                module.fail_json(msg='State: %s' % exc.message)
+                module.exit_json(changed=has_changed, result="Host %s deleted" % name)
+            except Exception as e:
+                module.fail_json(msg='State: %s' % e.message)
 
         try:
             # Check Properties
@@ -194,17 +198,22 @@ def main():
             if status == "disabled" and int(host.state) == 1:
                 centreon.host.disable(name)
                 has_changed = True
+                data.append("Host disabled")
+
             if status == "enabled" and int(host.state) == 0:
                 centreon.host.enable(name)
                 has_changed = True
+                data.append("Host enabled")
 
             if not host.address == ipaddr:
                 centreon.host.setparameters(name, 'address', ipaddr)
                 has_changed = True
+                data.append("Change ip addr: %s -> %s" % (host.address, ipaddr))
 
             if not host.alias == alias:
                 centreon.host.setparameters(name, 'alias', alias)
                 has_changed = True
+                data.append("Change alias: %s -> %s" % (host.alias, alias))
 
             hostgroups_host = centreon.host.gethostgroup(name)
 
@@ -214,11 +223,13 @@ def main():
 
             if not hostgroup_list == hostgroups:
                 if hostgroups_action == "add":
-                  centreon.host.addhostgroup(name, hostgroups)
-                  has_changed = True
+                    centreon.host.addhostgroup(name, hostgroups)
+                    has_changed = True
+                    data.append("add hostgroups: %s" % hostgroups)
                 else:
-                  centreon.host.sethostgroup(name, hostgroups)
-                  has_changed = True
+                    centreon.host.sethostgroup(name, hostgroups)
+                    has_changed = True
+                    data.append("set hostgroups: %s" % hostgroups)
 
             if hosttemplates:
                 template_host = centreon.host.gettemplate(name)
@@ -230,6 +241,7 @@ def main():
                     centreon.host.addtemplate(name, hosttemplates)
                     centreon.host.applytemplate(name)
                     has_changed = True
+                    data.append("Add HostTemplate: %s" % name)
 
             if macros:
                 macro_list = centreon.host.getmacro(name)
@@ -252,9 +264,9 @@ def main():
 
             if applycfg and has_changed:
                 centreon.poller.applycfg(instance)
-            module.exit_json(changed=has_changed)
-        except Exception as exc:
-            module.fail_json(msg='%s' % exc.message)
+            module.exit_json(changed=has_changed, msg=data)
+        except Exception as e:
+            module.fail_json(msg='%s' % e.message)
 
     elif not centreon.exists_host(name) and state == "present":
         try:
@@ -262,13 +274,14 @@ def main():
             # Apply the host templates for create associate services
             centreon.host.applytemplate(name)
             has_changed = True
+            data.append("Add host: %s" % name)
             # Apply Centreon configuration and reload the engine
             if applycfg:
                 centreon.poller.applycfg(instance)
             module.exit_json(changed=has_changed)
 
-        except Exception as exc:
-            module.fail_json(msg='Create: %s' % exc.message)
+        except Exception as e:
+            module.fail_json(msg='Create: %s' % e.message)
     else:
         module.exit_json(changed=has_changed)
 
