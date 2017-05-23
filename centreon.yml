@@ -16,6 +16,7 @@
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
       listen: "centreon api applycfg"
+      delegate_to: localhost
 
   tasks:
     - name: Add host to Centreon
@@ -25,7 +26,7 @@
         password: "{{ centreon_api_pass }}"
         name: "ansible-test"
         alias: "Alias_ansible"
-        ipaddr: "127.0.0.2"
+        ipaddr: "127.0.0.12"
         hosttemplates:
           - OS-Linux-SNMP-custom
           - App-DB-MySQL
@@ -40,7 +41,8 @@
         #  action_url: http://example.org/test
         #  notes: "My Server"
         macros:
-          TEST: VALUE2
+          - name: TEST
+            value: VALUE2
         applycfg: False
       delegate_to: localhost
       notify: "centreon api applycfg"
@@ -59,8 +61,12 @@
         url: "{{ centreon_url }}"
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
-        name:
-          HG_test: test
+        hg:
+          - name: test
+            alias: test
+          - name: test2r
+            alias: test2r
+          - name: test4
         state: present
       delegate_to: localhost
   tags:

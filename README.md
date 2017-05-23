@@ -28,7 +28,22 @@ Playbook example
         password: "{{ centreon_api_pass }}"
       listen: "centreon api applycfg"
 
+
   tasks:
+    - name: Add Hostgroup
+      centreon_hostgroup:
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
+        hg:
+          - name: Linux-Server
+            alias: Linux Server
+          - name: ProjectA
+            alias: Project AAAAAA ressources
+          - name: MyHostgroup
+       delegate_to: localhost
+       run_once: true
+  
     - name: Add host to Centreon
       centreon_host:
         url: "{{ centreon_url }}"
@@ -47,11 +62,15 @@ Playbook example
         status: enabled
         state: present
         params:
-          notes_url: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
-          notes: "My Best server"
+          - name: notes_url
+            value: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
+          - name: notes
+            value: "My Best server"
         macros:
-          MACRO1: value1
-          MACRO2: value2
+          - name: MACRO1
+            value: value1
+          - name: MACRO2
+            value: value2
         applycfg: False
       delegate_to: localhost
       notify: "centreon api applycfg"

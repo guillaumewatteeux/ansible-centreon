@@ -132,8 +132,8 @@ def main():
             instance=dict(default='Central'),
             hostgroups=dict(type='list'),
             hostgroups_action=dict(default='add', choices=['add', 'set']),
-            params=dict(type='dict', default=None),
-            macros=dict(type='dict', default=None),
+            params=dict(type='list', default=None),
+            macros=dict(type='list', default=None),
             state=dict(default='present', choices=['present', 'absent']),
             status=dict(default='enabled', choices=['enabled', 'disabled']),
             applycfg=dict(default=True, type='bool')
@@ -248,18 +248,18 @@ def main():
                 configured_macros = {}
                 for m in macro_list['result']:
                     configured_macros[m['macro name']] = m['macro value']
-                for k in macros.keys():
-                    if k not in configured_macros.keys():
-                        centreon.host.setmacro(name, k, macros.get(k))
+                for k in macros:
+                    if k['name'] not in configured_macros.keys():
+                        centreon.host.setmacro(name, k['name'], k['value'])
                         has_changed = True
                     else:
-                        if not configured_macros.get(k) == macros.get(k):
-                            centreon.host.setmacro(name, k, macros.get(k))
+                        if not configured_macros.get(k) == k['value']:
+                            centreon.host.setmacro(name, k['name'], k['value'])
                             has_changed = True
 
             if params:
-                for k in params.keys():
-                    centreon.host.setparameters(name, k, params.get(k))
+                for k in params:
+                    centreon.host.setparameters(name, k['name'], k['value'])
                     has_changed = True
 
             if applycfg and has_changed:
@@ -279,7 +279,6 @@ def main():
             if applycfg:
                 centreon.poller.applycfg(instance)
             module.exit_json(changed=has_changed)
-
         except Exception as e:
             module.fail_json(msg='Create: %s' % e.message)
     else:

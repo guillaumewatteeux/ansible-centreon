@@ -25,7 +25,7 @@ options:
     description:
       - Centreon API username's password
     required: True
-  name:
+  hg:
     description:
       - Hostgroup name (/ alias)
   state:
@@ -81,7 +81,7 @@ def main():
             url=dict(required=True),
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
-            name=dict(required=True, type='dict'),
+            hg=dict(required=True, type='list'),
             state=dict(default='present', choices=['present','absent']),
         )
     )
@@ -92,7 +92,7 @@ def main():
     url = module.params["url"]
     username = module.params["username"]
     password = module.params["password"]
-    name = module.params["name"]
+    name = module.params["hg"]
     state = module.params["state"]
 
     has_changed = False
@@ -103,22 +103,21 @@ def main():
         module.fail_json(msg="Unable to connect to Centreon API: %s" % exc.message)
 
     try:
-        for hg in name.keys():
-            if centreon.exists_hostgroups(hg):
+        for hg in name:
+            if centreon.exists_hostgroups(hg['name']):
                 if state == "absent":
-                    centreon.hostgroups.delete(hg)
+                    centreon.hostgroups.delete(hg['name'])
                     has_changed = True
             else:
                 if state == "present":
-                    if name.get(hg) is None:
-                        alias = hg
+                    if 'alias' not in hg:
+                        alias = hg['name']
                     else:
-                        alias = name.get(hg)
-                    centreon.hostgroups.add(hg, alias)
+                        alias = hg['alias']
+                    centreon.hostgroups.add(hg['name'], alias)
                     has_changed = True
-
     except Exception as exc:
-        module.fail_json(msg='%s' % exc.message)
+        module.fail_json(msg='%s - %s - %s' % (exc.message, name, hg))
 
     module.exit_json(changed=has_changed)
 
