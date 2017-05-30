@@ -73,5 +73,25 @@
     - hostgroup
 
 
+- hosts: localhost
+  vars:
+    centreon_url: "http://192.168.189.128/centreon"
+    centreon_api_user: "admin"
+    centreon_api_pass: "centreon"
+
+  tasks:
+    - name: Add host to Centreon
+      centreon_host:
+        url: "{{ centreon_url }}"
+        username: "{{ centreon_api_user }}"
+        password: "{{ centreon_api_pass }}"
+        name: "ansible-test"
+        hosttemplates:
+          - OS-Linux-SNMP-custom
+          - App-DB-MySQL
+      delegate_to: localhost
+      notify: "centreon api applycfg"
+  tags:
+    - test
 
 

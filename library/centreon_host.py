@@ -37,7 +37,6 @@ options:
   alias:
     description:
       - Host alias
-    default: name params
   ipaddr:
     description:
       - IP address
@@ -126,11 +125,11 @@ def main():
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
             name=dict(required=True),
-            hosttemplates=dict(type='list'),
+            hosttemplates=dict(type='list', default=None),
             alias=dict(default=None),
-            ipaddr=dict(),
+            ipaddr=dict(default=None),
             instance=dict(default='Central'),
-            hostgroups=dict(type='list'),
+            hostgroups=dict(type='list', default=None),
             hostgroups_action=dict(default='add', choices=['add', 'set']),
             params=dict(type='list', default=None),
             macros=dict(type='list', default=None),
@@ -165,9 +164,6 @@ def main():
         centreon = Centreon(url, username, password)
     except Exception as e:
         module.fail_json(msg="Unable to connect to Centreon API: %s" % e.message)
-
-    if alias is None:
-        alias = name
 
     try:
         if not centreon.exists_poller(instance):
@@ -205,12 +201,12 @@ def main():
                 has_changed = True
                 data.append("Host enabled")
 
-            if not host.address == ipaddr:
+            if not host.address == ipaddr and ipaddr:
                 centreon.host.setparameters(name, 'address', ipaddr)
                 has_changed = True
                 data.append("Change ip addr: %s -> %s" % (host.address, ipaddr))
 
-            if not host.alias == alias:
+            if not host.alias == alias and alias:
                 centreon.host.setparameters(name, 'alias', alias)
                 has_changed = True
                 data.append("Change alias: %s -> %s" % (host.alias, alias))
@@ -221,7 +217,7 @@ def main():
             for hg in hostgroups_host['result']:
                 hostgroup_list.append(hg['name'])
 
-            if not hostgroup_list == hostgroups:
+            if not hostgroup_list == hostgroups and hostgroups:
                 if hostgroups_action == "add":
                     centreon.host.addhostgroup(name, hostgroups)
                     has_changed = True
