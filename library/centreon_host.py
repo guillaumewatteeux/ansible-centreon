@@ -217,7 +217,7 @@ def main():
             for hg in hostgroups_host['result']:
                 hostgroup_list.append(hg['name'])
 
-            if not hostgroup_list == hostgroups and hostgroups:
+            if set(hostgroups) > set(hostgroup_list) and hostgroups:
                 if hostgroups_action == "add":
                     centreon.host.addhostgroup(name, hostgroups)
                     has_changed = True
@@ -233,7 +233,7 @@ def main():
                 for tpl in template_host['result']:
                     template_list.append(tpl['name'])
 
-                if not template_list == hosttemplates:
+                if set(hosttemplates) > set(template_list):
                     centreon.host.addtemplate(name, hosttemplates)
                     centreon.host.applytemplate(name)
                     has_changed = True
