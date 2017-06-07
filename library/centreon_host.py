@@ -217,7 +217,7 @@ def main():
             for hg in hostgroups_host['result']:
                 hostgroup_list.append(hg['name'])
 
-            if set(hostgroups) > set(hostgroup_list) and hostgroups:
+            if hostgroups and set(hostgroups) > set(hostgroup_list):
                 if hostgroups_action == "add":
                     centreon.host.addhostgroup(name, hostgroups)
                     has_changed = True
@@ -233,11 +233,18 @@ def main():
                 for tpl in template_host['result']:
                     template_list.append(tpl['name'])
 
-                if set(hosttemplates) > set(template_list):
-                    centreon.host.addtemplate(name, hosttemplates)
+                flag_tmpl = False
+                list_tmpl = []
+                for tmpl in hosttemplates:
+                    if tmpl not in template_list:
+                        list_tmpl.append(tmpl)
+                        flag_tmpl = True
+                        
+                if flag_tmpl:
+                    centreon.host.addtemplate(name, list_tmpl)
                     centreon.host.applytemplate(name)
                     has_changed = True
-                    data.append("Add HostTemplate: %s" % name)
+                    data.append("Add HostTemplate: %s" % list_tmpl)
 
             if macros:
                 macro_list = centreon.host.getmacro(name)
