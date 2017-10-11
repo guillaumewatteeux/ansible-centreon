@@ -256,7 +256,7 @@ def main():
                         centreon.host.setmacro(name, k['name'], k['value'])
                         has_changed = True
                     else:
-                        if not configured_macros.get(k) == k['value']:
+                        if not configured_macros.get(k['name']) == k['value']:
                             centreon.host.setmacro(name, k['name'], k['value'])
                             has_changed = True
 
