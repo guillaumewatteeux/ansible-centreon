@@ -1,10 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-ANSIBLE_METADATA = { 'status': ['preview'],
-                     'supported_by': 'community',
-                     'metadata_version': '0.1',
-                     'version': '0.1'}
+# import module snippets
+from ansible.module_utils.basic import *
+
+ANSIBLE_METADATA = {
+    'status': ['preview'],
+    'supported_by': 'community',
+    'metadata_version': '0.1',
+    'version': '0.1'
+}
 
 DOCUMENTATION = '''
 ---
@@ -106,9 +111,6 @@ EXAMPLES = '''
 # Centreon module API Rest
 #
 
-# import module snippets
-from ansible.module_utils.basic import *
-
 try:
     from centreonapi.centreon import Centreon
 except ImportError:
@@ -163,7 +165,9 @@ def main():
     try:
         centreon = Centreon(url, username, password)
     except Exception as e:
-        module.fail_json(msg="Unable to connect to Centreon API: %s" % e.message)
+        module.fail_json(
+            msg="Unable to connect to Centreon API: %s" % e.message
+        )
 
     try:
         if not centreon.exists_poller(instance):
@@ -181,7 +185,9 @@ def main():
                 has_changed = True
                 if applycfg:
                     centreon.poller.applycfg(instance)
-                module.exit_json(changed=has_changed, result="Host %s deleted" % name)
+                module.exit_json(
+                    changed=has_changed, result="Host %s deleted" % name
+                )
             except Exception as e:
                 module.fail_json(msg='State: %s' % e.message)
 
@@ -204,7 +210,9 @@ def main():
             if not host.address == ipaddr and ipaddr:
                 centreon.host.setparameters(name, 'address', ipaddr)
                 has_changed = True
-                data.append("Change ip addr: %s -> %s" % (host.address, ipaddr))
+                data.append(
+                    "Change ip addr: %s -> %s" % (host.address, ipaddr)
+                )
 
             if not host.alias == alias and alias:
                 centreon.host.setparameters(name, 'alias', alias)
@@ -239,7 +247,7 @@ def main():
                     if tmpl not in template_list:
                         list_tmpl.append(tmpl)
                         flag_tmpl = True
-                        
+
                 if flag_tmpl:
                     centreon.host.addtemplate(name, list_tmpl)
                     centreon.host.applytemplate(name)
@@ -273,7 +281,14 @@ def main():
 
     elif not centreon.exists_host(name) and state == "present":
         try:
-            centreon.host.add(name, alias, ipaddr, hosttemplates, instance, hostgroups)
+            centreon.host.add(
+                name,
+                alias,
+                ipaddr,
+                hosttemplates,
+                instance,
+                hostgroups
+            )
             # Apply the host templates for create associate services
             centreon.host.applytemplate(name)
             has_changed = True
@@ -287,7 +302,6 @@ def main():
     else:
         module.exit_json(changed=has_changed)
 
+
 if __name__ == '__main__':
     main()
-
-

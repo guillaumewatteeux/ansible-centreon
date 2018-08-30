@@ -1,10 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-ANSIBLE_METADATA = { 'status': ['preview'],
-                     'supported_by': 'community',
-                     'metadata_version': '0.1',
-                     'version': '0.1'}
+# import module snippets
+from ansible.module_utils.basic import *
+
+ANSIBLE_METADATA = {
+    'status': ['preview'],
+    'supported_by': 'community',
+    'metadata_version': '0.1',
+    'version': '0.1'
+}
 
 DOCUMENTATION = '''
 ---
@@ -54,8 +59,6 @@ EXAMPLES = '''
 # Centreon module API Rest
 #
 
-# import module snippets
-from ansible.module_utils.basic import *
 
 try:
     from centreonapi.centreon import Centreon
@@ -91,7 +94,9 @@ def main():
     try:
         centreon = Centreon(url, username, password)
     except Exception as exc:
-        module.fail_json(msg="Unable to connect to Centreon API: %s" % exc.message)
+        module.fail_json(
+            msg="Unable to connect to Centreon API: %s" % exc.message
+        )
 
     if not centreon.exists_poller(instance):
         module.fail_json(msg="Poller '%s' does not exists" % instance)
@@ -108,5 +113,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
