@@ -1,10 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-ANSIBLE_METADATA = { 'status': ['preview'],
-                     'supported_by': 'community',
-                     'metadata_version': '0.1',
-                     'version': '0.1'}
+# import module snippets
+from ansible.module_utils.basic import AnsibleModule
+
+ANSIBLE_METADATA = {
+    'status': ['preview'],
+    'supported_by': 'community',
+    'metadata_version': '0.1',
+    'version': '0.1'}
 
 DOCUMENTATION = '''
 ---
@@ -48,7 +52,7 @@ EXAMPLES = '''
     name:
       Linux-Servers: Linux Server
     state: present
-     
+
 # Delete host
 - centreon_hostgroup:
     url: 'https://centreon.company.net/centreon'
@@ -62,9 +66,6 @@ EXAMPLES = '''
 # =============================================
 # Centreon module API Rest
 #
-
-# import module snippets
-from ansible.module_utils.basic import *
 
 try:
     from centreonapi.centreon import Centreon
@@ -82,7 +83,7 @@ def main():
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
             hg=dict(required=True, type='list'),
-            state=dict(default='present', choices=['present','absent']),
+            state=dict(default='present', choices=['present', 'absent'])
         )
     )
 
@@ -100,7 +101,9 @@ def main():
     try:
         centreon = Centreon(url, username, password)
     except Exception as exc:
-        module.fail_json(msg="Unable to connect to Centreon API: %s" % exc.message)
+        module.fail_json(
+            msg="Unable to connect to Centreon API: %s" % exc.message
+        )
 
     try:
         for hg in name:
@@ -124,5 +127,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
