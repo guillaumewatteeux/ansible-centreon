@@ -4,7 +4,7 @@ IN DEVELOPMENT !!! Use as ours risks
 
 ### Install ###
 
-Install required centreonapi (> 0.0.2) python library
+Install required centreonapi (>= 0.0.4) python library
 
 Copy `library/centreon_*.py` on your Ansible `library` path
 

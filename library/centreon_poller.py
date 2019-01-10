@@ -75,6 +75,7 @@ def main():
             url=dict(required=True),
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
+            check_ssl=(dict(default=True, choises=[True, False])),
             instance=dict(default='Central'),
             action=dict(default='applycfg', choices=['applycfg']),
         )
@@ -86,13 +87,14 @@ def main():
     url = module.params["url"]
     username = module.params["username"]
     password = module.params["password"]
+    check_ssl = module.params["check_ssl"]
     instance = module.params["instance"]
     action = module.params["action"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl)
     except Exception as exc:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % exc.message

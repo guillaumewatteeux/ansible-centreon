@@ -27,55 +27,75 @@ options:
     description:
       - Centreon API username
     required: True
+
   password:
     description:
       - Centreon API username's password
     required: True
+
+  check_ssl:
+    description:
+      - Check SSL 
+    choices: [true, false]
+    default true
+
   name:
     description:
       - Hostname
     required: True
+
   hosttemplates:
     description:
       - Host Template list for this host
     type: list
+
   alias:
     description:
       - Host alias
+
   ipaddr:
     description:
       - IP address
+
   instance:
     description:
       - Poller instance to check host
     default: Central
+
   hostgroups:
     description:
       - Hostgroups list
     type: list
+
   hostgroups_action:
     description:
       - Define hostgroups setting method (add/set)
     default: add
     choices: ['add','set']
+
   params:
     description:
-      - Config specific parameter (dict)
+      - Config specific parameter (dict). Actualy not idempotence...
+
   macros:
     description:
       - Set Host Macros (dict)
+      
   state:
     description:
       - Create / Delete host on Centreon
     default: present
     choices: ['present', 'absent']
+  
   status:
     description:
       - Enable / Disable host on Centreon
     default: enabled
-    choices: c
+    choices: ['enabled', 'disabled']
+
 requirements:
   - Python Centreon API
+
 author:
     - Guillaume Watteeux
 '''
@@ -126,6 +146,7 @@ def main():
             url=dict(required=True),
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
+            check_ssl=(dict(default=True, choises=[True, False])),
             name=dict(required=True),
             hosttemplates=dict(type='list', default=None),
             alias=dict(default=None),
@@ -147,6 +168,7 @@ def main():
     url = module.params["url"]
     username = module.params["username"]
     password = module.params["password"]
+    check_ssl = module.params["check_ssl"]
     name = module.params["name"]
     alias = module.params["alias"]
     ipaddr = module.params["ipaddr"]
@@ -163,7 +185,7 @@ def main():
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl)
     except Exception as e:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % e.message
