@@ -69,8 +69,10 @@ Playbook example
         macros:
           - name: MACRO1
             value: value1
+            ispassword: 0
           - name: MACRO2
             value: value2
+            desc: macro description
         applycfg: False
       delegate_to: localhost
       notify: "centreon api applycfg"
