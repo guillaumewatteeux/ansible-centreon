@@ -299,7 +299,11 @@ def main():
     if macros:
         m_state, m_list = host.getmacro()
         for k in macros:
-            if k.get('name').upper() not in m_list.keys():
+            if k.get('name').find("$_HOST") == 0:
+                current_macro = m_list.get(k.get('name'))
+            else:
+                current_macro = m_list.get('$_HOST' + k.get('name').upper() + '$')
+            if current_macro is None:
                 s, m = host.setmacro(
                     name=k.get('name'),
                     value=k.get('value'),
@@ -308,8 +312,7 @@ def main():
                 if s:
                     has_changed = True
                     data.append("Add macros %s" % k.get('name').upper())
-            elif k.get('name') is not None:
-                current_macro = m_list.get(k.get('name').upper())
+            else:
                 if not current_macro.value == k.get('value')\
                         or not int(current_macro.is_password) == int(k.get('is_password', 0))\
                         or not current_macro.description == k.get('description', ''):
