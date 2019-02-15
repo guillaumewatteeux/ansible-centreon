@@ -1,20 +1,49 @@
-## Ansible Centreon Module ##
+# Ansible Centreon Module #
 
-IN DEVELOPMENT !!! Use as ours risks
+An Ansible module to configure Centreon
 
-### Install ###
+* HostGroup Management (add/del)
+* Host Management (add, del, hosttemplate, hostgroup, macros, params, status)
+* In development...
 
-Install required centreonapi (> 0.0.2) python library
+## Requirements ##
 
-Copy `library/centreon_*.py` on your Ansible `library` path
+* Ansible >= 2.4.0 (ansible)
+* centreonapi >= 0.1.3 
 
+###Install ##
 
-### Use It ! ###
+### Install CentreonAPI 
+
+```shell
+pip install centreonapi>=0.1.3
+```
+
+### Install Ansible-modules-centreon
+
+```shell
+$ cd YourPlayBookProject
+$ cat >> galaxy_requirements.yml
+- src: https://github.com/guillaumewatteeux/ansible-centreon.git
+  scm: git
+  version: dev
+  name: ansible-modules-centreon
+
+CTRL+D
+
+$ ansible-galaxy install -r galaxy_requirements.yml
+```
+
+## Use It ! ##
 
 Playbook example
 
 ```yaml
-- hosts: localhost
+- hosts: server
+  connection: local
+  roles:
+    - role: ansible-modules-centreon
+
   vars:
     centreon_url: "http://192.168.189.128/centreon"
     centreon_api_user: "admin"
@@ -27,7 +56,6 @@ Playbook example
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
       listen: "centreon api applycfg"
-
 
   tasks:
     - name: Add Hostgroup
@@ -57,7 +85,7 @@ Playbook example
           - OS-Linux-SNMP-disk
         hostgroups:
           - Linux-Servers
-          - Production-Servers
+          - ProjectA
         instance: Central
         status: enabled
         state: present
@@ -69,16 +97,23 @@ Playbook example
         macros:
           - name: MACRO1
             value: value1
+            ispassword: 0
           - name: MACRO2
             value: value2
+            desc: macro description
         applycfg: False
-      delegate_to: localhost
       notify: "centreon api applycfg"
 
 ```
 
-### Default values ###
+/!\ Warning about `params`: ansible module not idempotency with this options
+
+## Default values ##
 
  * `instance` : Central
  * `status`: enabled
  * `state`: present
+ 
+## AUTHOR INFORMATION
+
+Guillaume Watteeux ([@guillaumewatteeux]https://github.com/guillaumewatteeux)

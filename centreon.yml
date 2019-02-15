@@ -2,96 +2,104 @@
 
 # Testing playbook.... use with VM
 
-
 - hosts: localhost
   vars:
-    centreon_url: "http://192.168.189.128/centreon"
+    centreon_url: "http://192.168.189.138/centreon"
     centreon_api_user: "admin"
     centreon_api_pass: "centreon"
-
-  handlers:
-    - name: "centreon api applycfg"
-      centreon_poller:
+  tasks:
+    - name: Add Command to Centreon
+      centreon_command:
         url: "{{ centreon_url }}"
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
-      listen: "centreon api applycfg"
+        name: "App-DB-Redis-cli-clients"
+        type: "check"
+        line: |
+          $CENTREONPLUGINS$/centreon_redis_cli.pl --plugin=apps::redis::cli::plugin --mode=clients --hostname=$HOSTADDRESS$ --port='$_HOSTREDISPORT$' --username='$_HOSTREDISUSERNAME$' --password='$_HOSTREDISPASSWORD$' --warning-connected-clients='$_SERVICEWARNINGCONNECTEDCLIENTS$' --critical-connected-clients='$_SERVICECRITICALCONNECTEDCLIENTS$' --warning-blocked-clients='$_SERVICEWARNINGBLOCKEDCLIENTS$' --critical-blocked-clients='$_SERVICECRITICALBLOCKEDCLIENTS$' --warning-client-longest-output-list='$_SERVICEWARNINGLONGESTOUTPUTLIST$' --critical-client-longest-output-list='$_SERVICECRITICALLONGESTOUTPUTLIST$' --warning-client-biggest-input-buf='$_SERVICEWARNINGBIGGESTINPUTBUFF$' --critical-client-biggest-input-buf='$_SERVICECRITICALBIGGESTINPUTBUFF$'
       delegate_to: localhost
+      notify: "centreon api applycfg"
+  tags:
+    - command
+
+- hosts: localhost
+  vars:
+    centreon_url: "http://192.168.189.138/centreon"
+    centreon_api_user: "admin"
+    centreon_api_pass: "centreon"
 
   tasks:
-    - name: Add host to Centreon
+    - name: Add Host to Centreon
       centreon_host:
         url: "{{ centreon_url }}"
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
-        name: "ansible-test"
-        alias: "Alias_ansible"
-        ipaddr: "127.0.0.12"
+        name: "host_testt"
+        alias: "test"
+        ipaddr: "127.0.0.1"
         hosttemplates:
-          - OS-Linux-SNMP-custom
           - App-DB-MySQL
+          - HW-Printer-standard-rfc3805-custom
         hostgroups:
-          - Linux-Servers
-          - hg2
+          - hg_test
         hostgroups_action: set
-        instance: Central
+        #instance: Central
         status: enabled
         state: present
         #params:
-        #  action_url: http://example.org/test
-        #  notes: "My Server"
+        #  - name: notes_url
+        #    value: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
+        #  - name: notes
+        #    value: "My Best server"
         macros:
-          - name: TEST
-            value: VALUE2
+          - name: MACRO1
+            value: value1_up
+            is_password: 0
+          - name: MACRO2
+            value: ""
+            description: description1
+        #  - name: macropass
+        #    value: mysecretpassword
+        #    is_password: 1
+        #    description: "shut..."
         applycfg: False
       delegate_to: localhost
-      notify: "centreon api applycfg"
   tags:
-    - host
+    - hosts
 
 
 - hosts: localhost
   vars:
-    centreon_url: "http://192.168.189.128/centreon"
+    centreon_url: "http://192.168.189.138/centreon"
     centreon_api_user: "admin"
     centreon_api_pass: "centreon"
+
   tasks:
-    - name: Hostgroup
+    - name: Add Host to Centreon
       centreon_hostgroup:
         url: "{{ centreon_url }}"
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
         hg:
-          - name: test
-            alias: test
-          - name: test2r
-            alias: test2r
-          - name: test4
-        state: present
-      delegate_to: localhost
+         - name: "hg_ansible"
+           alias: "test"
+         - name: "hg_not_alias"
+        state: absent
   tags:
-    - hostgroup
-
+    - hg
 
 - hosts: localhost
   vars:
-    centreon_url: "http://192.168.189.128/centreon"
+    centreon_url: "http://192.168.189.138/centreon"
     centreon_api_user: "admin"
     centreon_api_pass: "centreon"
-
   tasks:
-    - name: Add host to Centreon
-      centreon_host:
+    - name: Apply Config on poller
+      centreon_poller:
         url: "{{ centreon_url }}"
         username: "{{ centreon_api_user }}"
         password: "{{ centreon_api_pass }}"
-        name: "ansible-test"
-        hosttemplates:
-          - OS-Linux-SNMP-custom
-          - App-DB-MySQL
-      delegate_to: localhost
-      notify: "centreon api applycfg"
+        instance: "Central"
+        action: "applycfg"
   tags:
-    - test
-
-
+    - poller
