@@ -132,14 +132,14 @@ def main():
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
             name=dict(required=True),
-            hosttemplates=dict(type='list', default=None),
+            hosttemplates=dict(type=list, default=None),
             alias=dict(default=None),
             ipaddr=dict(default=None),
             instance=dict(default='Central'),
-            hostgroups=dict(type='list', default=None),
-            hostgroups_action=dict(default='add', choices=['add', 'set']),
-            params=dict(type='list', default=None),
-            macros=dict(type='list', default=None),
+            hostgroups=dict(type=list, default=None),
+            hostgroups_action=dict(default='add', choices=['add', 'set'], help="Deprecated"),
+            params=dict(type=list, default=None),
+            macros=dict(type=list, default=None),
             state=dict(default='present', choices=['present', 'absent']),
             status=dict(default='enabled', choices=['enabled', 'disabled']),
             applycfg=dict(default=True, type='bool')
@@ -256,26 +256,34 @@ def main():
     #### HostGroup
     if hostgroups:
         hg_state, hg_list = host.gethostgroup()
-        if hostgroups_action == "add":
-            for hg in hostgroups:
-                if hg_state and hg not in hg_list.keys():
-                    s, h = host.addhostgroup(hg)
-                    if s:
-                        has_changed = True
-                        data.append("Add hostgroups: %s" % hostgroups)
-                    else:
-                        module.fail_json(msg='Unable to add hostgroup %s: %s' % (hg, h), changed=has_changed)
-        else:
+        if hg_state:
             hostgroup_list = list()
-            for hg in hg_list.keys():
-                hostgroup_list.append(hg)
-            if set(hostgroup_list) > set(hostgroups):
-                s, h = host.sethostgroup(hostgroups)
+            if hg_list is not None:
+                for hg in hg_list.keys():
+                    hostgroup_list.append(hg)
+            del_hostgroup = list()
+            add_hostgroup = list()
+            for hgp in hostgroups:
+                if hgp.get('name') in hostgroup_list and hgp.get('state') == 'absent':
+                    del_hostgroup.append(hgp.get('name'))
+                elif hgp.get('name') not in hostgroup_list and (hgp.get('state') == "present" or hgp.get('state') is None):
+                    add_hostgroup.append(hgp.get('name'))
+
+            if add_hostgroup:
+                s, h = host.addhostgroup(add_hostgroup)
                 if s:
                     has_changed = True
-                    data.append("Set hostgroups: %s" % hostgroups)
+                    data.append("Add HostGroup: %s" % add_hostgroup)
                 else:
-                    module.fail_json(msg='Unable to set hostgroup %s: %s' % (hg, h), changed=has_changed)
+                    module.fail_json(msg='Unable to add hostgroup: %s, %s' % (add_hostgroup, h), changed=has_changed)
+
+            if del_hostgroup:
+                s, h = host.deletehostgroup(del_hostgroup)
+                if s:
+                    has_changed = True
+                    data.append("Del HostGroup: %s" % del_hostgroup)
+                else:
+                    module.fail_json(msg='Unable to def hostgroup: %s, %s' % (del_hostgroup, h), changed=has_changed)
 
     #### HostTemplates
     if hosttemplates:
@@ -285,15 +293,33 @@ def main():
             if ht_list is not None:
                 for tpl in ht_list.keys():
                     template_list.append(tpl)
+            del_host_template = list()
+            add_host_template = list()
+            for tmpl in hosttemplates:
+                if tmpl.get('name') in template_list and tmpl.get('state') == "absent":
+                    del_host_template.append(tmpl.get('name'))
+                elif tmpl.get('name') not in template_list\
+                        and (tmpl.get('state') == "present"
+                        or tmpl.get('state') is None):
+                    add_host_template.append(tmpl.get('name'))
 
-            new_template = list(set(hosttemplates) - set(template_list))
-            data.append(new_template)
-            if new_template:
-                s, h = host.addtemplate(new_template)
+            if add_host_template:
+                s, h = host.addtemplate(add_host_template)
                 if s:
                     host.applytemplate()
                     has_changed = True
-                    data.append("Add HostTemplate: %s" % new_template)
+                    data.append("Add HostTemplate: %s" % add_host_template)
+                else:
+                    module.fail_json(msg='Unable to add hostTemplate: %s' % add_host_template, changed=has_changed)
+
+            if del_host_template:
+                s, h = host.deletetemplate(del_host_template)
+                if s:
+                    host.applytemplate()
+                    has_changed = True
+                    data.append("Del HostTemplate: %s" % del_host_template)
+                else:
+                    module.fail_json(msg='Unable to del hostTemplate: %s' % del_host_template, changed=has_changed)
 
     #### Macros
     if macros:
