@@ -329,7 +329,7 @@ def main():
                 current_macro = m_list.get(k.get('name'))
             else:
                 current_macro = m_list.get('$_HOST' + k.get('name').upper() + '$')
-            if current_macro is None:
+            if current_macro is None and (k.get('state') == "present" or k.get('state') is None):
                 s, m = host.setmacro(
                     name=k.get('name'),
                     value=k.get('value'),
@@ -338,17 +338,23 @@ def main():
                 if s:
                     has_changed = True
                     data.append("Add macros %s" % k.get('name').upper())
-            else:
+            elif current_macro is not None and k.get('state') == "absent":
+                s, m = host.deletemacro(k.get('name'))
+                if s:
+                    has_changed = True
+                    data.append("Delete macros %s" % k.get('name'))
+            elif current_macro is not None and (k.get('state') == "absent" or k.get('state') is not None):
                 if not current_macro.value == k.get('value')\
                         or not int(current_macro.is_password) == int(k.get('is_password', 0))\
                         or not current_macro.description == k.get('description', ''):
-                    host.setmacro(
+                    s, m = host.setmacro(
                         name=k.get('name'),
                         value=k.get('value'),
                         is_password=k.get('is_password'),
                         description=k.get('description'))
-                    has_changed = True
-                    data.append("Upgade macros")
+                    if s:
+                        has_changed = True
+                        data.append("Upgade macros %s" % k.get('name'))
 
     #### Params
     if params:

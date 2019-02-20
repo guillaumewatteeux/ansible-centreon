@@ -58,9 +58,10 @@
           - name: "$_HOSTTEST$"
             value: value1_up
             is_password: 0
-        #  - name: FOO
-        #    value: bar
-        #    description: description1
+          - name: FOO
+            value: bar
+            description: description1
+            state: absent
         #  - name: "$_HOSTSNMPCOMMUNITY$"
         #    value: "snmp_secret"
         #  - name: "$_HOSTTEST$"
