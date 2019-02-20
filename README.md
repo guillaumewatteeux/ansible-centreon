@@ -90,7 +90,6 @@ Playbook example
           - name: Debian-Servers
             state: absent
           - name: ProjectA
-        hostgroups_action: set
         instance: Central
         status: enabled
         state: present
@@ -106,6 +105,7 @@ Playbook example
           - name: "$_HOSTMACRO2$"
             value: value2
             desc: macro description
+            state: absent
         applycfg: False
       notify: "centreon api applycfg"
 
