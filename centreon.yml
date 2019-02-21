@@ -49,11 +49,11 @@
         #instance: Central
         status: enabled
         state: present
-        #params:
-        #  - name: notes_url
-        #    value: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
-        #  - name: notes
-        #    value: "My Best server"
+        params:
+          - name: notes_url
+            value: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
+          - name: notes
+            value: "My Best server 2"
         macros:
           - name: "$_HOSTTEST$"
             value: value1_up

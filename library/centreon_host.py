@@ -7,8 +7,8 @@ from ansible.module_utils.basic import AnsibleModule
 ANSIBLE_METADATA = {
     'status': ['preview'],
     'supported_by': 'community',
-    'metadata_version': '0.2',
-    'version': '0.2'
+    'metadata_version': '0.3',
+    'version': '0.3'
 }
 
 DOCUMENTATION = '''
@@ -53,11 +53,6 @@ options:
     description:
       - Hostgroups list
     type: list
-  hostgroups_action:
-    description:
-      - Define hostgroups setting method (add/set)
-    default: add
-    choices: ['add','set']
   params:
     description:
       - Config specific parameter (dict)
@@ -90,13 +85,14 @@ EXAMPLES = '''
      alias: "{{ ansible_hostname }}"
      ipaddr: "{{ ansible_default_ipv4.address }}"
      hosttemplates:
-       - OS-Linux-SNMP-custom
-       - OS-Linux-SNMP-disk
+       - name: OS-Linux-SNMP-custom
+       - name: OS-Linux-SNMP-disk
+         state: absent
      hostgroups:
-       - Linux-Servers
-       - Production-Servers
-       - App1
-     hostgroups_action: set
+       - name: Linux-Servers
+       - name: Production-Servers
+       - name: App1
+         state: absent
      instance: Central
      status: enabled
      state: present:
@@ -110,6 +106,7 @@ EXAMPLES = '''
        - name: MACRO2
          value: value2
          desc: my macro
+         state: absent
 '''
 
 # =============================================
@@ -127,43 +124,41 @@ else:
 def main():
 
     module = AnsibleModule(
-        argument_spec=dict(
-            url=dict(required=True),
-            username=dict(default='admin', no_log=True),
-            password=dict(default='centreon', no_log=True),
-            name=dict(required=True),
-            hosttemplates=dict(type=list, default=None),
-            alias=dict(default=None),
-            ipaddr=dict(default=None),
-            instance=dict(default='Central'),
-            hostgroups=dict(type=list, default=None),
-            hostgroups_action=dict(default='add', choices=['add', 'set'], help="Deprecated"),
-            params=dict(type=list, default=None),
-            macros=dict(type=list, default=None),
-            state=dict(default='present', choices=['present', 'absent']),
-            status=dict(default='enabled', choices=['enabled', 'disabled']),
-            applycfg=dict(default=True, type='bool')
+        argument_spec     = dict(
+            url           = dict(required=True),
+            username      = dict(default='admin', no_log=True),
+            password      = dict(default='centreon', no_log=True),
+            name          = dict(required=True),
+            hosttemplates = dict(type=list, default=None),
+            alias         = dict(default=None),
+            ipaddr        = dict(default=None),
+            instance      = dict(default='Central'),
+            hostgroups    = dict(type=list, default=None),
+            params        = dict(type=list, default=None),
+            macros        = dict(type=list, default=None),
+            state         = dict(default='present', choices=['present', 'absent']),
+            status        = dict(default='enabled', choices=['enabled', 'disabled']),
+            applycfg      = dict(default=True, type='bool')
         )
     )
 
     if not centreonapi_found:
         module.fail_json(msg="Python centreonapi module is required (>0.1.0)")
 
-    url = module.params["url"]
-    username = module.params["username"]
-    password = module.params["password"]
-    name = module.params["name"]
-    alias = module.params["alias"]
-    ipaddr = module.params["ipaddr"]
-    hosttemplates = module.params["hosttemplates"]
-    instance = module.params["instance"]
-    hostgroups = module.params["hostgroups"]
-    hostgroups_action = module.params["hostgroups_action"]
-    params = module.params["params"]
-    macros = module.params["macros"]
-    state = module.params["state"]
-    status = module.params["status"]
-    applycfg = module.params["applycfg"]
+    url             = module.params["url"]
+    username        = module.params["username"]
+    password        = module.params["password"]
+    name            = module.params["name"]
+    alias           = module.params["alias"]
+    ipaddr          = module.params["ipaddr"]
+    hosttemplates   = module.params["hosttemplates"]
+    instance        = module.params["instance"]
+    hostgroups      = module.params["hostgroups"]
+    params          = module.params["params"]
+    macros          = module.params["macros"]
+    state           = module.params["state"]
+    status          = module.params["status"]
+    applycfg        = module.params["applycfg"]
 
     has_changed = False
 
@@ -358,12 +353,14 @@ def main():
 
     #### Params
     if params:
+        _, _ = host.getparams()
         for k in params:
-            s, h = host.setparam(k.get('name'), k.get('value'))
-            if s:
-                has_changed = True
-            else:
-                module.fail_json(msg='Unable to set param %s: %s' % (k.get('name'), h), changed=has_changed)
+            if k.get('value') != host.params[k.get('name')]:
+                s, h = host.setparam(k.get('name'), k.get('value'))
+                if s:
+                    has_changed = True
+                else:
+                    module.fail_json(msg='Unable to set param %s: %s' % (k.get('name'), h), changed=has_changed)
 
     if applycfg and has_changed:
         poller.applycfg()

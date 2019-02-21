@@ -111,8 +111,6 @@ Playbook example
 
 ```
 
-/!\ Warning about `params`: ansible module not idempotency with this options
-
 ## Default values ##
 
  * `instance` : Central
