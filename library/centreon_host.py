@@ -319,6 +319,8 @@ def main():
     #### Macros
     if macros:
         m_state, m_list = host.getmacro()
+        if m_list is None:
+            m_list = {}
         for k in macros:
             if k.get('name').find("$_HOST") == 0:
                 current_macro = m_list.get(k.get('name'))
