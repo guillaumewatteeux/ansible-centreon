@@ -107,7 +107,10 @@ def main():
             msg="Unable to connect to Centreon API: %s" % e.message
         )
 
-    hostgroups = centreon.hostgroups.list()
+    try:
+        hostgroups = centreon.hostgroups.list()
+    except Exception as e:
+        module.fail_json(msg="Unable to list hostgroups: {}".format(e.message))
 
     if state == "absent":
         for hg in name:

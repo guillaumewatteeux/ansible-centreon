@@ -98,7 +98,11 @@ def main():
             msg="Unable to connect to Centreon API: %s" % exc.message
         )
 
-    st, poller = centreon.pollers.get(instance)
+    try:
+        st, poller = centreon.pollers.get(instance)
+    except Exception as e:
+        module.fail_json(msg="Unable to get pollers: {}".format(e.message))
+
     if not st and poller is None:
         module.fail_json(msg="Poller '%s' does not exists" % instance)
     elif not st:
