@@ -15,7 +15,8 @@ DOCUMENTATION = '''
 ---
 module: centreon_host
 version_added: "2.2"
-short_description: add host to centreon
+description: Manage Centreon hosts.
+short_description: Manage Centreon hosts
 
 options:
   url:

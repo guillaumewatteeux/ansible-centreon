@@ -14,7 +14,8 @@ DOCUMENTATION = '''
 ---
 module: centreon_hostgroup
 version_added: "2.2"
-short_description: Create or delete hostgroup
+description: Manage Centreon hostgroupups.
+short_description: Manage Centreon hostgroupups
 
 options:
   url:

@@ -15,7 +15,8 @@ DOCUMENTATION = '''
 ---
 module: centreon_poller
 version_added: "2.2"
-short_description: applycfg on poller
+description: Deploy configuration to a Centreon poller.
+short_description: Deploy configuration to a Centreon poller
 
 options:
   url:

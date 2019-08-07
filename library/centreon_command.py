@@ -15,7 +15,8 @@ DOCUMENTATION = '''
 ---
 module: centreon_command
 version_added: "2.8"
-short_description: Manage command on Centreon
+description: Manage Centreon commands.
+short_description: Manage Centreon commands
 
 options:
   url:
