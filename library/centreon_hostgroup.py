@@ -38,6 +38,11 @@ options:
       - Create / Delete hostgroup
     default: present
     choices: ['present', 'absent']
+  validate_certs:
+    type: bool
+    default: yes
+    description:
+      - If C(no), SSL certificates will not be validated.
 requirements:
   - Python Centreon API
 author:
@@ -86,7 +91,8 @@ def main():
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
             hg=dict(required=True, type='list'),
-            state=dict(default='present', choices=['present', 'absent'])
+            state=dict(default='present', choices=['present', 'absent']),
+            validate_certs=dict(default=True, type='bool'),
         )
     )
 
@@ -98,11 +104,12 @@ def main():
     password = module.params["password"]
     name = module.params["hg"]
     state = module.params["state"]
+    validate_certs = module.params["validate_certs"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl=validate_certs)
     except Exception as e:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % e.message

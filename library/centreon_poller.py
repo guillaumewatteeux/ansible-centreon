@@ -40,6 +40,11 @@ options:
       - action for poller
     default: applycfg
     choices: ['applycfg']
+  validate_certs:
+    type: bool
+    default: yes
+    description:
+      - If C(no), SSL certificates will not be validated.
 requirements:
   - Python Centreon API
 author:
@@ -78,6 +83,7 @@ def main():
             password=dict(default='centreon', no_log=True),
             instance=dict(default='Central'),
             action=dict(default='applycfg', choices=['applycfg']),
+            validate_certs=dict(default=True, type='bool'),
         )
     )
 
@@ -89,11 +95,12 @@ def main():
     password = module.params["password"]
     instance = module.params["instance"]
     action = module.params["action"]
+    validate_certs = module.params["validate_certs"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl=validate_certs)
     except Exception as exc:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % exc.message

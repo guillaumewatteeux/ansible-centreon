@@ -70,6 +70,11 @@ options:
       - Enable / Disable host on Centreon
     default: enabled
     choices: c
+  validate_certs:
+    type: bool
+    default: yes
+    description:
+      - If C(no), SSL certificates will not be validated.
 requirements:
   - Python Centreon API
 author:
@@ -125,21 +130,22 @@ else:
 def main():
 
     module = AnsibleModule(
-        argument_spec     = dict(
-            url           = dict(required=True),
-            username      = dict(default='admin', no_log=True),
-            password      = dict(default='centreon', no_log=True),
-            name          = dict(required=True),
-            hosttemplates = dict(type=list, default=None),
-            alias         = dict(default=None),
-            ipaddr        = dict(default=None),
-            instance      = dict(default='Central'),
-            hostgroups    = dict(type=list, default=None),
-            params        = dict(type=list, default=None),
-            macros        = dict(type=list, default=None),
-            state         = dict(default='present', choices=['present', 'absent']),
-            status        = dict(default='enabled', choices=['enabled', 'disabled']),
-            applycfg      = dict(default=True, type='bool')
+        argument_spec=dict(
+            url=dict(required=True),
+            username=dict(default='admin', no_log=True),
+            password=dict(default='centreon', no_log=True),
+            name=dict(required=True),
+            hosttemplates=dict(type=list, default=None),
+            alias=dict(default=None),
+            ipaddr=dict(default=None),
+            instance=dict(default='Central'),
+            hostgroups=dict(type=list, default=None),
+            params=dict(type=list, default=None),
+            macros=dict(type=list, default=None),
+            state=dict(default='present', choices=['present', 'absent']),
+            status=dict(default='enabled', choices=['enabled', 'disabled']),
+            applycfg=dict(default=True, type='bool'),
+            validate_certs=dict(default=True, type='bool'),
         )
     )
 
@@ -160,11 +166,12 @@ def main():
     state           = module.params["state"]
     status          = module.params["status"]
     applycfg        = module.params["applycfg"]
+    validate_certs  = module.params["validate_certs"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl=validate_certs)
     except Exception as e:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % e.message
