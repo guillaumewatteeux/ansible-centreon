@@ -15,7 +15,8 @@ DOCUMENTATION = '''
 ---
 module: centreon_poller
 version_added: "2.2"
-short_description: applycfg on poller
+description: Deploy configuration to a Centreon poller.
+short_description: Deploy configuration to a Centreon poller
 
 options:
   url:
@@ -39,6 +40,11 @@ options:
       - action for poller
     default: applycfg
     choices: ['applycfg']
+  validate_certs:
+    type: bool
+    default: yes
+    description:
+      - If C(no), SSL certificates will not be validated.
 requirements:
   - Python Centreon API
 author:
@@ -77,6 +83,7 @@ def main():
             password=dict(default='centreon', no_log=True),
             instance=dict(default='Central'),
             action=dict(default='applycfg', choices=['applycfg']),
+            validate_certs=dict(default=True, type='bool'),
         )
     )
 
@@ -88,17 +95,22 @@ def main():
     password = module.params["password"]
     instance = module.params["instance"]
     action = module.params["action"]
+    validate_certs = module.params["validate_certs"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl=validate_certs)
     except Exception as exc:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % exc.message
         )
 
-    st, poller = centreon.pollers.get(instance)
+    try:
+        st, poller = centreon.pollers.get(instance)
+    except Exception as e:
+        module.fail_json(msg="Unable to get pollers: {}".format(e.message))
+
     if not st and poller is None:
         module.fail_json(msg="Poller '%s' does not exists" % instance)
     elif not st:

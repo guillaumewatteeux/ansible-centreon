@@ -15,7 +15,8 @@ DOCUMENTATION = '''
 ---
 module: centreon_command
 version_added: "2.8"
-short_description: Manage command on Centreon
+description: Manage Centreon commands.
+short_description: Manage Centreon commands
 
 options:
   url:
@@ -39,6 +40,11 @@ options:
       - Applycfg on poller
     default: True
     choices: ['True','False']
+  validate_certs:
+    type: bool
+    default: yes
+    description:
+      - If C(no), SSL certificates will not be validated.
 requirements:
   - Python Centreon API
 author:
@@ -84,6 +90,7 @@ def main():
             comment=dict(default=None),
             applycfg=dict(default=True, type='bool'),
             state=dict(default='present', choices=['present', 'absent']),
+            validate_certs=dict(default=True, type='bool'),
         )
     )
 
@@ -102,17 +109,22 @@ def main():
     comment = module.params["comment"]
     applycfg = module.params["applycfg"]
     state = module.params["state"]
+    validate_certs  = module.params["validate_certs"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl=validate_certs)
     except Exception as e:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % e.message
         )
 
-    st, poller = centreon.pollers.get(instance)
+    try:
+        st, poller = centreon.pollers.get(instance)
+    except Exception as e:
+        module.fail_json(msg="Unable to get pollers: {}".format(e.message))
+
     if not st and poller is None:
         module.fail_json(msg="Poller '%s' does not exists" % instance)
     elif not st:
