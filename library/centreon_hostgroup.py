@@ -7,8 +7,8 @@ from ansible.module_utils.basic import AnsibleModule
 ANSIBLE_METADATA = {
     'status': ['preview'],
     'supported_by': 'community',
-    'metadata_version': '0.1',
-    'version': '0.1'}
+    'metadata_version': '0.3',
+    'version': '0.3'}
 
 DOCUMENTATION = '''
 ---
@@ -93,18 +93,20 @@ def main():
             hg=dict(required=True, type='list'),
             state=dict(default='present', choices=['present', 'absent']),
             validate_certs=dict(default=True, type='bool'),
+
         )
     )
 
     if not centreonapi_found:
         module.fail_json(msg="Python centreonapi module is required")
 
-    url = module.params["url"]
+    url      = module.params["url"]
     username = module.params["username"]
     password = module.params["password"]
     name = module.params["hg"]
     state = module.params["state"]
     validate_certs = module.params["validate_certs"]
+
 
     has_changed = False
 
