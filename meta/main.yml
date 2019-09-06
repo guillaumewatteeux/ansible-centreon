@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  author: Guillaume Watteeux
+  description: An Ansible module to configure Centreon
+  license: GPLv3
+  min_ansible_version: 2.4.0
+  platforms:
+  - name: Ubuntu
+    versions:
+    - all
