@@ -290,7 +290,7 @@ def main():
                     has_changed = True
                     data.append("Del HostGroup: %s" % del_hostgroup)
                 else:
-                    module.fail_json(msg='Unable to def hostgroup: %s, %s' % (del_hostgroup, h), changed=has_changed)
+                    module.fail_json(msg='Unable to delete hostgroup: %s, %s' % (del_hostgroup, h), changed=has_changed)
 
     #### HostTemplates
     if hosttemplates:
