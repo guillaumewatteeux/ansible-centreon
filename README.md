@@ -81,11 +81,15 @@ Playbook example
         alias: "{{ ansible_fqdn }}"
         ipaddr: "{{ ansible_default_ipv4.address }}"
         hosttemplates:
-          - OS-Linux-SNMP-custom
-          - OS-Linux-SNMP-disk
+          - name: OS-Linux-SNMP-custom
+          - name: OS-Linux-SNMP-disk
+          - name: OS-Linux-SNMP-dummy
+            state: absent
         hostgroups:
-          - Linux-Servers
-          - ProjectA
+          - name: Linux-Servers
+          - name: Debian-Servers
+            state: absent
+          - name: ProjectA
         instance: Central
         status: enabled
         state: present
@@ -98,15 +102,14 @@ Playbook example
           - name: MACRO1
             value: value1
             ispassword: 0
-          - name: MACRO2
+          - name: "$_HOSTMACRO2$"
             value: value2
             desc: macro description
+            state: absent
         applycfg: False
       notify: "centreon api applycfg"
 
 ```
-
-/!\ Warning about `params`: ansible module not idempotency with this options
 
 ## Default values ##
 
@@ -116,4 +119,4 @@ Playbook example
  
 ## AUTHOR INFORMATION
 
-Guillaume Watteeux ([@guillaumewatteeux]https://github.com/guillaumewatteeux)
+Guillaume Watteeux ([@guillaumewatteeux] (https://github.com/guillaumewatteeux))

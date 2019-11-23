@@ -7,15 +7,16 @@ from ansible.module_utils.basic import AnsibleModule
 ANSIBLE_METADATA = {
     'status': ['preview'],
     'supported_by': 'community',
-    'metadata_version': '0.2',
-    'version': '0.2'
+    'metadata_version': '0.3',
+    'version': '0.3'
 }
 
 DOCUMENTATION = '''
 ---
 module: centreon_host
 version_added: "2.2"
-short_description: add host to centreon
+description: Manage Centreon hosts.
+short_description: Manage Centreon hosts
 
 options:
   url:
@@ -53,11 +54,6 @@ options:
     description:
       - Hostgroups list
     type: list
-  hostgroups_action:
-    description:
-      - Define hostgroups setting method (add/set)
-    default: add
-    choices: ['add','set']
   params:
     description:
       - Config specific parameter (dict)
@@ -74,6 +70,11 @@ options:
       - Enable / Disable host on Centreon
     default: enabled
     choices: c
+  validate_certs:
+    type: bool
+    default: yes
+    description:
+      - If C(no), SSL certificates will not be validated.
 requirements:
   - Python Centreon API
 author:
@@ -90,13 +91,14 @@ EXAMPLES = '''
      alias: "{{ ansible_hostname }}"
      ipaddr: "{{ ansible_default_ipv4.address }}"
      hosttemplates:
-       - OS-Linux-SNMP-custom
-       - OS-Linux-SNMP-disk
+       - name: OS-Linux-SNMP-custom
+       - name: OS-Linux-SNMP-disk
+         state: absent
      hostgroups:
-       - Linux-Servers
-       - Production-Servers
-       - App1
-     hostgroups_action: set
+       - name: Linux-Servers
+       - name: Production-Servers
+       - name: App1
+         state: absent
      instance: Central
      status: enabled
      state: present:
@@ -110,6 +112,7 @@ EXAMPLES = '''
        - name: MACRO2
          value: value2
          desc: my macro
+         state: absent
 '''
 
 # =============================================
@@ -132,49 +135,53 @@ def main():
             username=dict(default='admin', no_log=True),
             password=dict(default='centreon', no_log=True),
             name=dict(required=True),
-            hosttemplates=dict(type='list', default=None),
+            hosttemplates=dict(type=list, default=None),
             alias=dict(default=None),
             ipaddr=dict(default=None),
             instance=dict(default='Central'),
-            hostgroups=dict(type='list', default=None),
-            hostgroups_action=dict(default='add', choices=['add', 'set']),
-            params=dict(type='list', default=None),
-            macros=dict(type='list', default=None),
+            hostgroups=dict(type=list, default=None),
+            params=dict(type=list, default=None),
+            macros=dict(type=list, default=None),
             state=dict(default='present', choices=['present', 'absent']),
             status=dict(default='enabled', choices=['enabled', 'disabled']),
-            applycfg=dict(default=True, type='bool')
+            applycfg=dict(default=True, type='bool'),
+            validate_certs=dict(default=True, type='bool'),
         )
     )
 
     if not centreonapi_found:
         module.fail_json(msg="Python centreonapi module is required (>0.1.0)")
 
-    url = module.params["url"]
-    username = module.params["username"]
-    password = module.params["password"]
-    name = module.params["name"]
-    alias = module.params["alias"]
-    ipaddr = module.params["ipaddr"]
-    hosttemplates = module.params["hosttemplates"]
-    instance = module.params["instance"]
-    hostgroups = module.params["hostgroups"]
-    hostgroups_action = module.params["hostgroups_action"]
-    params = module.params["params"]
-    macros = module.params["macros"]
-    state = module.params["state"]
-    status = module.params["status"]
-    applycfg = module.params["applycfg"]
+    url             = module.params["url"]
+    username        = module.params["username"]
+    password        = module.params["password"]
+    name            = module.params["name"]
+    alias           = module.params["alias"]
+    ipaddr          = module.params["ipaddr"]
+    hosttemplates   = module.params["hosttemplates"]
+    instance        = module.params["instance"]
+    hostgroups      = module.params["hostgroups"]
+    params          = module.params["params"]
+    macros          = module.params["macros"]
+    state           = module.params["state"]
+    status          = module.params["status"]
+    applycfg        = module.params["applycfg"]
+    validate_certs  = module.params["validate_certs"]
 
     has_changed = False
 
     try:
-        centreon = Centreon(url, username, password)
+        centreon = Centreon(url, username, password, check_ssl=validate_certs)
     except Exception as e:
         module.fail_json(
             msg="Unable to connect to Centreon API: %s" % e.message
         )
 
-    st, poller = centreon.pollers.get(instance)
+    try:
+        st, poller = centreon.pollers.get(instance)
+    except Exception as e:
+        module.fail_json(msg="Unable to get pollers: {}".format(e.message))
+
     if not st and poller is None:
         module.fail_json(msg="Poller '%s' does not exists" % instance)
     elif not st:
@@ -256,26 +263,34 @@ def main():
     #### HostGroup
     if hostgroups:
         hg_state, hg_list = host.gethostgroup()
-        if hostgroups_action == "add":
-            for hg in hostgroups:
-                if hg_state and hg not in hg_list.keys():
-                    s, h = host.addhostgroup(hg)
-                    if s:
-                        has_changed = True
-                        data.append("Add hostgroups: %s" % hostgroups)
-                    else:
-                        module.fail_json(msg='Unable to add hostgroup %s: %s' % (hg, h), changed=has_changed)
-        else:
+        if hg_state:
             hostgroup_list = list()
-            for hg in hg_list.keys():
-                hostgroup_list.append(hg)
-            if set(hostgroup_list) > set(hostgroups):
-                s, h = host.sethostgroup(hostgroups)
+            if hg_list is not None:
+                for hg in hg_list.keys():
+                    hostgroup_list.append(hg)
+            del_hostgroup = list()
+            add_hostgroup = list()
+            for hgp in hostgroups:
+                if hgp.get('name') in hostgroup_list and hgp.get('state') == 'absent':
+                    del_hostgroup.append(hgp.get('name'))
+                elif hgp.get('name') not in hostgroup_list and (hgp.get('state') == "present" or hgp.get('state') is None):
+                    add_hostgroup.append(hgp.get('name'))
+
+            if add_hostgroup:
+                s, h = host.addhostgroup(add_hostgroup)
                 if s:
                     has_changed = True
-                    data.append("Set hostgroups: %s" % hostgroups)
+                    data.append("Add HostGroup: %s" % add_hostgroup)
                 else:
-                    module.fail_json(msg='Unable to set hostgroup %s: %s' % (hg, h), changed=has_changed)
+                    module.fail_json(msg='Unable to add hostgroup: %s, %s' % (add_hostgroup, h), changed=has_changed)
+
+            if del_hostgroup:
+                s, h = host.deletehostgroup(del_hostgroup)
+                if s:
+                    has_changed = True
+                    data.append("Del HostGroup: %s" % del_hostgroup)
+                else:
+                    module.fail_json(msg='Unable to delete hostgroup: %s, %s' % (del_hostgroup, h), changed=has_changed)
 
     #### HostTemplates
     if hosttemplates:
@@ -285,25 +300,45 @@ def main():
             if ht_list is not None:
                 for tpl in ht_list.keys():
                     template_list.append(tpl)
+            del_host_template = list()
+            add_host_template = list()
+            for tmpl in hosttemplates:
+                if tmpl.get('name') in template_list and tmpl.get('state') == "absent":
+                    del_host_template.append(tmpl.get('name'))
+                elif tmpl.get('name') not in template_list\
+                        and (tmpl.get('state') == "present"
+                        or tmpl.get('state') is None):
+                    add_host_template.append(tmpl.get('name'))
 
-            new_template = list(set(hosttemplates) - set(template_list))
-            data.append(new_template)
-            if new_template:
-                s, h = host.addtemplate(new_template)
+            if add_host_template:
+                s, h = host.addtemplate(add_host_template)
                 if s:
                     host.applytemplate()
                     has_changed = True
-                    data.append("Add HostTemplate: %s" % new_template)
+                    data.append("Add HostTemplate: %s" % add_host_template)
+                else:
+                    module.fail_json(msg='Unable to add hostTemplate: %s' % add_host_template, changed=has_changed)
+
+            if del_host_template:
+                s, h = host.deletetemplate(del_host_template)
+                if s:
+                    host.applytemplate()
+                    has_changed = True
+                    data.append("Del HostTemplate: %s" % del_host_template)
+                else:
+                    module.fail_json(msg='Unable to del hostTemplate: %s' % del_host_template, changed=has_changed)
 
     #### Macros
     if macros:
         m_state, m_list = host.getmacro()
+        if m_list is None:
+            m_list = {}
         for k in macros:
             if k.get('name').find("$_HOST") == 0:
                 current_macro = m_list.get(k.get('name'))
             else:
                 current_macro = m_list.get('$_HOST' + k.get('name').upper() + '$')
-            if current_macro is None:
+            if current_macro is None and (k.get('state') == "present" or k.get('state') is None):
                 s, m = host.setmacro(
                     name=k.get('name'),
                     value=k.get('value'),
@@ -312,26 +347,34 @@ def main():
                 if s:
                     has_changed = True
                     data.append("Add macros %s" % k.get('name').upper())
-            else:
+            elif current_macro is not None and k.get('state') == "absent":
+                s, m = host.deletemacro(k.get('name'))
+                if s:
+                    has_changed = True
+                    data.append("Delete macros %s" % k.get('name'))
+            elif current_macro is not None and (k.get('state') == "present" or k.get('state') is None):
                 if not current_macro.value == k.get('value')\
                         or not int(current_macro.is_password) == int(k.get('is_password', 0))\
                         or not current_macro.description == k.get('description', ''):
-                    host.setmacro(
+                    s, m = host.setmacro(
                         name=k.get('name'),
                         value=k.get('value'),
                         is_password=k.get('is_password'),
                         description=k.get('description'))
-                    has_changed = True
-                    data.append("Upgade macros")
+                    if s:
+                        has_changed = True
+                        data.append("Update macros %s" % k.get('name'))
 
     #### Params
     if params:
+        _, _ = host.getparams()
         for k in params:
-            s, h = host.setparam(k.get('name'), k.get('value'))
-            if s:
-                has_changed = True
-            else:
-                module.fail_json(msg='Unable to set param %s: %s' % (k.get('name'), h), changed=has_changed)
+            if k.get('value') != host.params[k.get('name')]:
+                s, h = host.setparam(k.get('name'), k.get('value'))
+                if s:
+                    has_changed = True
+                else:
+                    module.fail_json(msg='Unable to set param %s: %s' % (k.get('name'), h), changed=has_changed)
 
     if applycfg and has_changed:
         poller.applycfg()

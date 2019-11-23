@@ -38,26 +38,34 @@
         alias: "test"
         ipaddr: "127.0.0.1"
         hosttemplates:
-          - App-DB-MySQL
-          - HW-Printer-standard-rfc3805-custom
+          - name: App-DB-MySQL
+          - name: HW-Printer-standard-rfc3805-custom
+          - name: HW-UPS-Standard-Rfc1628-SNMP
+            state: absent
         hostgroups:
-          - hg_test
-        hostgroups_action: set
+          - name: hg_test
+            state: absent
+          - name: hg9
         #instance: Central
         status: enabled
         state: present
-        #params:
-        #  - name: notes_url
-        #    value: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
-        #  - name: notes
-        #    value: "My Best server"
+        params:
+          - name: notes_url
+            value: "https://wiki.company.org/servers/{{ ansible_fqdn }}"
+          - name: notes
+            value: "My Best server 2"
         macros:
-          - name: MACRO1
+          - name: "$_HOSTTEST$"
             value: value1_up
             is_password: 0
-          - name: MACRO2
-            value: ""
+          - name: FOO
+            value: bar
             description: description1
+            state: absent
+        #  - name: "$_HOSTSNMPCOMMUNITY$"
+        #    value: "snmp_secret"
+        #  - name: "$_HOSTTEST$"
+        #    value: "supertest"
         #  - name: macropass
         #    value: mysecretpassword
         #    is_password: 1
