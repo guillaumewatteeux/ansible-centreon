@@ -290,7 +290,7 @@ def main():
                     has_changed = True
                     data.append("Del HostGroup: %s" % del_hostgroup)
                 else:
-                    module.fail_json(msg='Unable to def hostgroup: %s, %s' % (del_hostgroup, h), changed=has_changed)
+                    module.fail_json(msg='Unable to delete hostgroup: %s, %s' % (del_hostgroup, h), changed=has_changed)
 
     #### HostTemplates
     if hosttemplates:
@@ -352,7 +352,7 @@ def main():
                 if s:
                     has_changed = True
                     data.append("Delete macros %s" % k.get('name'))
-            elif current_macro is not None and (k.get('state') == "absent" or k.get('state') is not None):
+            elif current_macro is not None and (k.get('state') == "present" or k.get('state') is None):
                 if not current_macro.value == k.get('value')\
                         or not int(current_macro.is_password) == int(k.get('is_password', 0))\
                         or not current_macro.description == k.get('description', ''):
@@ -363,7 +363,7 @@ def main():
                         description=k.get('description'))
                     if s:
                         has_changed = True
-                        data.append("Upgade macros %s" % k.get('name'))
+                        data.append("Update macros %s" % k.get('name'))
 
     #### Params
     if params:
